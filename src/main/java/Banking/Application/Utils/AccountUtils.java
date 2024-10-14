@@ -3,8 +3,6 @@ package Banking.Application.Utils;
 import java.time.Year;
 
 public class AccountUtils {
-    public static final String ACCOUNT_EXIST_CODE="001";
-    public static final String ACCOUNT_EXIST_MESSAGE="This User Already has an Account";
     public static final String ACCOUNT_CREATED__CODE="002";
     public static final String ACCOUNT_CREATED_MESSAGE="YOUR ACCOUNT WAS CREATED SUCCESSFULLY";
     public static final String ACCOUNT_NOT_EXIST_CODE ="003";

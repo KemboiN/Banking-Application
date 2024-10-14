@@ -4,9 +4,10 @@ import Banking.Application.Config.JwtTokenProvider;
 import Banking.Application.Dto.*;
 import Banking.Application.Entity.Role;
 import Banking.Application.Entity.User;
+import Banking.Application.Exception.AccountExistException;
+import Banking.Application.Exception.InsufficientBalanceException;
 import Banking.Application.Repository.UserRepository;
 import Banking.Application.Utils.AccountUtils;
-import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -79,11 +80,7 @@ public class UserServiceImpl implements UserService {
                     .build();
         }
 		else {
-            return BankResponse.builder()
-                    .responseCode(AccountUtils.ACCOUNT_EXIST_CODE)
-                    .responseMessage(AccountUtils.ACCOUNT_EXIST_MESSAGE)
-                    .accountInfo(null)
-                    .build();
+            throw new AccountExistException("A USER WITH THIS EMAIL ALREADY EXIST!! PLEASE PROCEED TO LOGIN");
         }
 
     }
@@ -111,11 +108,7 @@ public class UserServiceImpl implements UserService {
 		boolean isAccountNumberExist= userRepository.existsByAccountNumber(enquiryRequest.getAccountNumber());
 		if(!isAccountNumberExist)
 		{
-			return BankResponse.builder()
-					.responseCode(AccountUtils.ACCOUNT_NOT_EXIST_CODE)
-					.responseMessage(AccountUtils.ACCOUNT_NOT_EXIST_MESSAGE)
-					.accountInfo(null)
-					.build();
+			throw new AccountExistException("THE ACCOUNT NUMBER DOES NOT EXIST!! ");
 		}
 		User foundUser= userRepository.findByAccountNumber(enquiryRequest.getAccountNumber());
 		return BankResponse.builder()
@@ -132,7 +125,7 @@ public class UserServiceImpl implements UserService {
 	public String nameEnquiry(EnquiryRequest enquiryRequest) {
 		boolean isAccountNumberExist = userRepository.existsByAccountNumber(enquiryRequest.getAccountNumber());
 		if (!isAccountNumberExist) {
-			return AccountUtils.ACCOUNT_NOT_EXIST_MESSAGE;
+			throw new AccountExistException("THE ACCOUNT NUMBER DOES NOT EXIST!! ");
 
 		}
 		User foundUser = userRepository.findByAccountNumber(enquiryRequest.getAccountName());
@@ -144,11 +137,7 @@ public class UserServiceImpl implements UserService {
 		boolean isAccountNumberExist= userRepository.existsByAccountNumber(creditDebitRequest.getAccountNumber());
 		if(!isAccountNumberExist)
 		{
-			return BankResponse.builder()
-					.responseCode(AccountUtils.ACCOUNT_NOT_EXIST_CODE)
-					.responseMessage(AccountUtils.ACCOUNT_NOT_EXIST_MESSAGE)
-					.accountInfo(null)
-					.build();
+			throw new AccountExistException("THE ACCOUNT NUMBER DOES NOT EXIST!! ");
 		}
 		User userToCredit= userRepository.findByAccountNumber(creditDebitRequest.getAccountNumber());
 		userToCredit.setAccountBalance(userToCredit.getAccountBalance().add(creditDebitRequest.getAmount()));
@@ -175,22 +164,14 @@ public class UserServiceImpl implements UserService {
 		boolean isAccountNumberExist= userRepository.existsByAccountNumber(creditDebitRequest.getAccountNumber());
 		if(!isAccountNumberExist)
 		{
-			return BankResponse.builder()
-					.responseCode(AccountUtils.ACCOUNT_NOT_EXIST_CODE)
-					.responseMessage(AccountUtils.ACCOUNT_NOT_EXIST_MESSAGE)
-					.accountInfo(null)
-					.build();
+			throw new AccountExistException("THE ACCOUNT NUMBER DOES NOT EXIST!! ");
 		}
 		User userToDebit= userRepository.findByAccountNumber(creditDebitRequest.getAccountNumber());
 		BigInteger availableBalance= userToDebit.getAccountBalance().toBigInteger();
 		BigInteger debitAmount= creditDebitRequest.getAmount().toBigInteger();
-		if(availableBalance.intValue() <debitAmount.intValue())
+		if(debitAmount.compareTo(availableBalance)>0 )
 		{
-			return BankResponse.builder()
-					.responseCode(AccountUtils.INSUFFICIENT_BALANCE_CODE)
-					.responseMessage(AccountUtils.INSUFFICIENT_BALANCE_MESSAGE)
-					.accountInfo(null)
-					.build();
+			throw new InsufficientBalanceException("YOUR ACCOUNT HAS INSUFFICIENT BALANCE TO COMPLETE THE TRANSACTION!! ");
 		}
  else {
 	 userToDebit.setAccountBalance(userToDebit.getAccountBalance().subtract(creditDebitRequest.getAmount()));
@@ -219,20 +200,12 @@ public class UserServiceImpl implements UserService {
 	boolean isDestinationAccountExists=userRepository.existsByAccountNumber(transferRequest.getDestinationAccountNumber());
 		if(!isDestinationAccountExists)
 		{
-			return BankResponse.builder()
-					.responseCode(AccountUtils.ACCOUNT_NOT_EXIST_CODE)
-					.responseMessage(AccountUtils.ACCOUNT_NOT_EXIST_MESSAGE)
-					.accountInfo(null)
-					.build();
+			throw new AccountExistException("THE ACCOUNT NUMBER DOES NOT EXIST!! ");
 		}
 		User sourceAccountUser=userRepository.findByAccountNumber(transferRequest.getSourceAccountNumber());
-		if (transferRequest.getAmount().compareTo(sourceAccountUser.getAccountBalance())>0){
-			return  BankResponse.builder()
-					.responseCode(AccountUtils.INSUFFICIENT_BALANCE_CODE)
-					.responseMessage(AccountUtils.INSUFFICIENT_BALANCE_MESSAGE)
-					.accountInfo(null)
-					.build();
-
+		if (transferRequest.getAmount().compareTo(sourceAccountUser.getAccountBalance())>0)
+		{
+			throw new InsufficientBalanceException("YOUR ACCOUNT HAS INSUFFICIENT BALANCE TO COMPLETE THE TRANSACTION!! ");
 		}
 		sourceAccountUser.setAccountBalance(sourceAccountUser.getAccountBalance().subtract(transferRequest.getAmount()));
 		userRepository.save(sourceAccountUser);
